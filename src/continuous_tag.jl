@@ -32,11 +32,11 @@ Base.@kwdef struct ContinuousTag{T,O<:Tuple} <: POMG{CTagState{T}, Tuple{Int,Int
     transition_noise::Float64                   = 0.1
 end
 
-POMGs.discount(pomg::ContinuousTag) = pomg.discount
-POMGs.actions(pomg::ContinuousTag) = (1:pomg.n_act, 1:pomg.n_act)
-POMGs.observations(pomg::ContinuousTag) = (0:pomg.n_obs-1, 0:pomg.n_obs-1)
+MarkovGames.discount(pomg::ContinuousTag) = pomg.discount
+MarkovGames.actions(pomg::ContinuousTag) = (1:pomg.n_act, 1:pomg.n_act)
+MarkovGames.observations(pomg::ContinuousTag) = (0:pomg.n_obs-1, 0:pomg.n_obs-1)
 
-function POMGs.initialstate(pomg::ContinuousTag{T}) where T
+function MarkovGames.initialstate(pomg::ContinuousTag{T}) where T
     dims = T.(pomg.initialstate_dims)
     return ImplicitDistribution() do rng
         s1 = (@SArray(rand(rng, T, 2)) .* 2 .- 1) .* dims
@@ -45,7 +45,7 @@ function POMGs.initialstate(pomg::ContinuousTag{T}) where T
     end
 end
 
-function POMGs.observation(pomg::ContinuousTag, sp::CTagState)
+function MarkovGames.observation(pomg::ContinuousTag, sp::CTagState)
     Δx = sp.evader - sp.pursuer
     θp = mod2pi(atan(Δx[2], Δx[1]))
     θe = mod2pi(θp + π)
@@ -56,7 +56,7 @@ end
 
 ctag_move(s::Vec2{T}, θ, ds) where T = SA[s[1] + T(ds*cos(θ)), s[2] + T(ds*sin(θ))]
 
-function POMGs.gen(pomg::ContinuousTag, s::CTagState{T}, a::Tuple{Int, Int}, rng::Random.AbstractRNG=Random.default_rng()) where T
+function MarkovGames.gen(pomg::ContinuousTag, s::CTagState{T}, a::Tuple{Int, Int}, rng::Random.AbstractRNG=Random.default_rng()) where T
     subdiv = 2π / pomg.n_act
     θs = a .* subdiv
     θs = map(θs) do θ
@@ -79,7 +79,7 @@ function sparse_pursuer_reward(pomg::ContinuousTag, s::CTagState, a)
     return norm(Δx, 2) ≤ pomg.tag_radius ? 1.0 : 0.0
 end
 
-function POMGs.reward(pomg::ContinuousTag, s::CTagState, a)
+function MarkovGames.reward(pomg::ContinuousTag, s::CTagState, a)
     r = pomg.dense_reward ? dense_pursuer_reward(pomg, s, a) : sparse_pursuer_reward(pomg, s, a)
     return (r, -r)
 end
