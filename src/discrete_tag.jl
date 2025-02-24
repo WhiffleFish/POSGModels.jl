@@ -2,6 +2,8 @@ module DiscreteTag
 
 using MarkovGames
 using StaticArrays
+using POMDPTools
+using LinearAlgebra
 
 export Coord, TagMG, TagState
 
@@ -65,7 +67,7 @@ function MarkovGames.states(p::TagMG)
             false
         )
     end
-    return push!(v, TagState(Coord(1,1), Coord(1,1), true)) 
+    return push!(vec(v), TagState(Coord(1,1), Coord(1,1), true)) 
 end
 
 MarkovGames.actions(p::TagMG) = (pursuer_actions(p), evader_actions(p))
@@ -75,7 +77,7 @@ MarkovGames.discount(p::TagMG) = p.discount
 MarkovGames.initialstate(p::TagMG) = Deterministic(p.initialstate)
 
 function add_if_clear(floor, obstacles, s::Coord, a::Coord)
-    sp = s .+ a_dir
+    sp = s .+ a
     if (any(sp .< Coord(1,1)) || any(sp .> floor) || sp ∈ obstacles)
         return s
     else
@@ -86,18 +88,31 @@ end
 add_if_clear(floor::Coord, obstacles, s::Coord, a::Int) = add_if_clear(floor, obstacles, s, ACTION_DIRS[a])
 
 function MarkovGames.transition(p::TagMG, s, (a1, a2))
-    (;floor, obstacles) = p.pomdp
-    return if s.robot == s.opponent # terminal -- successful tag
+    (;floor, obstacles) = p
+    return if s.pursuer == s.evader # terminal -- successful tag
         Deterministic(TagState(Coord(1,1), Coord(1,1), true))
     else
-        next_rob = add_if_clear(floor, obstacles, s.robot, a1)
-        next_opp = add_if_clear(floor, obstacles, s.opponent, a2)
-        Deterministic(TagState(next_rob, next_opp, false))
+        next_pursuer = add_if_clear(floor, obstacles, s.pursuer, a1)
+        next_evader = add_if_clear(floor, obstacles, s.evader, a2)
+        Deterministic(TagState(next_pursuer, next_evader, false))
     end
 end
 
 MarkovGames.isterminal(::TagMG, s) = s.terminal
 
 MarkovGames.reward(p::TagMG, s::TagState, a) = isterminal(p, s) ? 0.0 : p.reward_model(s.pursuer, s.evader)
+
+function stateindex(f::Coord, s::TagState)
+    (;pursuer, evader, terminal) = s
+    nc, nr = f
+    n_pos = (nr^2)*(nc^2)
+    if terminal
+        return n_pos+1
+    else
+        return LinearIndices((nc,nr,nc,nr))[pursuer[1], pursuer[2], evader[1], evader[2]]
+    end
+end
+
+MarkovGames.stateindex(p::TagMG, s::TagState) = stateindex(p.floor, s)
 
 end
