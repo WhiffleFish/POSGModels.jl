@@ -115,4 +115,14 @@ end
 
 MarkovGames.stateindex(p::TagMG, s::TagState) = stateindex(p.floor, s)
 
+function MarkovGames.convert_s(::Type{Vector{T}} , s::TagState, p::TagMG) where T
+    (; floor) = p
+    pursuer = (s.pursuer .- 1) ./ floor
+    evader = (s.evader .- 1) ./ floor
+    return T[
+        pursuer[1], pursuer[2],
+        evader[1], evader[2]
+    ]
+end
+
 end
