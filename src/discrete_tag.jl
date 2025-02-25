@@ -87,6 +87,13 @@ end
 
 add_if_clear(floor::Coord, obstacles, s::Coord, a::Int) = add_if_clear(floor, obstacles, s, ACTION_DIRS[a])
 
+function MarkovGames.transition(p::TagMG{DenseReward}, s, (a1, a2))
+    (;floor, obstacles) = p
+    next_pursuer = add_if_clear(floor, obstacles, s.pursuer, a1)
+    next_evader = add_if_clear(floor, obstacles, s.evader, a2)
+    return Deterministic(TagState(next_pursuer, next_evader, false))
+end
+
 function MarkovGames.transition(p::TagMG, s, (a1, a2))
     (;floor, obstacles) = p
     return if s.pursuer == s.evader # terminal -- successful tag
