@@ -132,4 +132,11 @@ function MarkovGames.convert_s(::Type{Vector{T}} , s::TagState, p::TagMG) where 
     ]
 end
 
+function MarkovGames.convert_s(::Type{TagState}, x::AbstractVector, p::TagMG)
+    (; floor) = p
+    pursuer = round.(Int, (x[1:2] .* floor) .+ 1)
+    evader = round.(Int, (x[3:4] .* floor) .+ 1)
+    return TagState(Coord(pursuer[1], pursuer[2]), Coord(evader[1], evader[2]), false)
+end
+
 end
