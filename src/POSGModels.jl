@@ -10,4 +10,6 @@ include("continuous_tag.jl")
 
 include("discrete_tag.jl")
 
+include("simple_game.jl")
+
 end # module POSGModels
