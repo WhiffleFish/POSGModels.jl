@@ -8,10 +8,10 @@ using LinearAlgebra
 export Coord, TagMG, TagState
 
 const ACTION_DIRS = SA[
-    SA[1, 0], # up
-    SA[0, 1], # right
-    SA[-1,0], # down
-    SA[0,-1]  # left
+    SA[0, 1], # up
+    SA[1, 0], # right
+    SA[0,-1], # down
+    SA[-1,0]  # left
 ]
 
 const Coord = SVector{2, Int}
@@ -124,8 +124,8 @@ MarkovGames.stateindex(p::TagMG, s::TagState) = stateindex(p.floor, s)
 
 function MarkovGames.convert_s(::Type{Vector{T}} , s::TagState, p::TagMG) where T
     (; floor) = p
-    pursuer = (s.pursuer .- 1) ./ floor
-    evader = (s.evader .- 1) ./ floor
+    pursuer = (s.pursuer .- floor ./ 2) ./ floor
+    evader = (s.evader .- floor ./ 2) ./ floor
     return T[
         pursuer[1], pursuer[2],
         evader[1], evader[2]
@@ -134,8 +134,8 @@ end
 
 function MarkovGames.convert_s(::Type{TagState}, x::AbstractVector, p::TagMG)
     (; floor) = p
-    pursuer = round.(Int, (x[1:2] .* floor) .+ 1)
-    evader = round.(Int, (x[3:4] .* floor) .+ 1)
+    pursuer = round.(Int, (x[1:2] .* floor) .+ floor ./ 2)
+    evader = round.(Int, (x[3:4] .* floor) .+ floor ./ 2)
     return TagState(Coord(pursuer[1], pursuer[2]), Coord(evader[1], evader[2]), false)
 end
 
