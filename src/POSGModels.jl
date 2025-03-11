@@ -12,4 +12,6 @@ include("discrete_tag.jl")
 
 include("simple_game.jl")
 
+include("intercept.jl")
+
 end # module POSGModels
