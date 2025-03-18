@@ -14,4 +14,6 @@ include("simple_game.jl")
 
 include("intercept.jl")
 
+include("stacked-intercept.jl")
+
 end # module POSGModels
