@@ -114,7 +114,7 @@ function MarkovGames.reward(p::InterceptMG, s::InterceptState, a)
     else
         r = -p.reward_model(s.attacker, s.defender)
         if s.attacker ∈ p.goal
-            r += 1.0
+            r += 10.0
         end
         return r
     end
