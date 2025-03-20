@@ -4,6 +4,7 @@ using MarkovGames
 using StaticArrays
 using POMDPTools
 using LinearAlgebra
+using RecipesBase
 
 export Coord, StackedInterceptMG, StackedInterceptState
 
@@ -164,5 +165,66 @@ function MarkovGames.convert_s(::Type{StackedInterceptState}, x::AbstractVector,
     defender = round.(Int, (x[3:4] .* floor) .+ floor ./ 2)
     return InterceptState(attackers, Coord(defender[1], defender[2]), false)
 end
+
+## visualization
+
+function action_lines(x::Coord)
+    return map(ACTION_DIRS) do a
+        sp = x + a
+        [x[1], sp[1]], [x[2], sp[2]]
+    end
+end
+
+@recipe function f(game::StackedInterceptMG, s::StackedInterceptState)
+    (;attackers, defender) = s
+    xlims --> (0, game.floor[1]+1)
+    ylims --> (0, game.floor[2]+1)
+    xticks --> nothing
+    yticks --> nothing
+    goals = collect(game.goal)
+    @series begin
+        seriestype  := :scatter
+        c           --> [1,2,:red]
+        [attackers[1][1], attackers[2][1], defender[1]], [attackers[1][2], attackers[2][2], defender[2]]
+    end
+    @series begin
+        seriestype := :scatter
+        ms := 20
+        c := :yellow
+        first.(goals), last.(goals)
+    end
+end
+
+@recipe function f(game::StackedInterceptMG, s::StackedInterceptState, σ1::AbstractVector, σ2::AbstractVector)
+    (;attackers, defender) = s
+    attacker1, attacker2 = attackers
+    _pol1 = reshape(σ1, (4,4))
+    pol11 = vec(sum(_pol1, dims=2)) |> permutedims
+    pol12 = vec(sum(_pol1, dims=1)) |> permutedims
+    pol2 = σ2 |> permutedims
+    @series begin
+        c       --> 1
+        lw      --> 10
+        alpha   --> pol11
+        action_lines(attacker1)
+    end
+    @series begin
+        c       --> 2
+        lw      --> 10
+        alpha   --> pol12
+        action_lines(attacker2)
+    end
+    @series begin
+        c       --> :red
+        lw      --> 10
+        alpha   --> pol2
+        action_lines(defender)
+    end
+    @series begin
+        game, s
+    end
+end
+
+@recipe f(game::StackedInterceptMG, s::StackedInterceptState, σ1::SparseCat, σ2::SparseCat) = game, s, σ1.probs, σ2.probs
 
 end
