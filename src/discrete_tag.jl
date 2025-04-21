@@ -4,6 +4,7 @@ using MarkovGames
 using StaticArrays
 using POMDPTools
 using LinearAlgebra
+using RecipesBase
 
 export Coord, TagMG, TagState
 
@@ -20,6 +21,7 @@ struct TagState
     pursuer::Coord
     evader::Coord
     terminal::Bool
+    TagState(pursuer, evader, terminal=false) = new(pursuer, evader, terminal)
 end
 
 Base.@kwdef struct TagMG{RM} <: MG{TagState, Tuple{Int,Int}}
@@ -138,5 +140,54 @@ function MarkovGames.convert_s(::Type{TagState}, x::AbstractVector, p::TagMG)
     evader = round.(Int, (x[3:4] .* floor) .+ floor ./ 2)
     return TagState(Coord(pursuer[1], pursuer[2]), Coord(evader[1], evader[2]), false)
 end
+
+
+## visualization
+
+function action_lines(x::Coord)
+    return map(ACTION_DIRS) do a
+        sp = x + a
+        [x[1], sp[1]], [x[2], sp[2]]
+    end
+end
+
+@recipe function f(game::TagMG, s::TagState)
+    (;pursuer, evader) = s
+    xlims --> (0, game.floor[1]+1)
+    ylims --> (0, game.floor[2]+1)
+    xticks --> nothing
+    yticks --> nothing
+    @series begin
+        seriestype  := :scatter
+        c           --> [:blue,:red]
+        [pursuer[1], evader[1]], [pursuer[2], evader[2]]
+    end
+end
+
+@recipe function f(game::TagMG, s::TagState, σ1::AbstractVector, σ2::AbstractVector)
+    (;pursuer, evader) = s
+    pol1 = σ1 |> permutedims
+    pol2 = σ2 |> permutedims
+    @series begin
+        c       --> 1
+        lw      --> 10
+        alpha   --> pol1
+        action_lines(pursuer)
+    end
+    @series begin
+        c       --> :red
+        lw      --> 10
+        alpha   --> pol2
+        action_lines(evader)
+    end
+    @series begin
+        game, s
+    end
+end
+
+@recipe f(game::TagMG, s::TagState, σ1::SparseCat, σ2::SparseCat) = game, s, σ1.probs, σ2.probs
+
+@recipe f(game::TagMG, s::TagState, σ::ProductDistribution) = game, s, σ[1], σ[2]
+
 
 end
