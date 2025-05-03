@@ -16,4 +16,6 @@ include("intercept.jl")
 
 include("stacked-intercept.jl")
 
+include("dubin.jl")
+
 end # module POSGModels
