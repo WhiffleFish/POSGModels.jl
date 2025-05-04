@@ -21,6 +21,7 @@ struct InterceptState
     attacker::Coord
     defender::Coord
     terminal::Bool
+    InterceptState(attacker, defender, terminal=false) = new(attacker, defender, terminal)
 end
 
 Base.@kwdef struct InterceptMG{RM} <: MG{InterceptState, Tuple{Int,Int}}
@@ -92,7 +93,7 @@ function MarkovGames.transition(p::InterceptMG{DenseReward}, s, (a1, a2))
     return if s.attacker ∈ p.goal 
         Deterministic(InterceptState(Coord(1,1), Coord(1,1), true))
     else
-        return Deterministic(InterceptState(next_attacker, next_defender, false))
+        Deterministic(InterceptState(next_attacker, next_defender, false))
     end
 end
 
