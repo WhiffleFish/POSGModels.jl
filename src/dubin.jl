@@ -110,8 +110,8 @@ function MarkovGames.convert_s(::Type{Vector{T}} , s::JointDubinState, p::DubinM
     attacker_pos = (position(s.attacker) .- floor ./ 2) ./ floor
     defender_pos = (position(s.defender) .- floor ./ 2) ./ floor
     return T[
-        attacker_pos..., s.attacker[3],
-        defender_pos..., s.defender[3]
+        attacker_pos..., sincos(s.attacker[3])...,
+        defender_pos..., sincos(s.defender[3])...,
     ]
 end
 
