@@ -102,4 +102,35 @@ end
 #     return findfirst(isone, v) - 1
 # end
 
+struct SolutionNode
+    policy::NTuple{2, Vector{Float64}}
+    value::Float64
+end
+
+function exact_solve(matrix_solver, game::SimpleMG)
+    solution = Dict{SimpleState, SolutionNode}()
+    s = rand(initialstate(game))
+    solve_traverse!(solution, matrix_solver, game, s)
+    return solution
+end
+
+function solve_traverse!(solution::Dict, solver, game, s::Vector)
+    γ = discount(game)
+    if isterminal(game, s)
+        return 0.0
+    else
+        A1, A2 = actions(game)
+        V = zeros(length(A1), length(A2))
+        for i ∈ eachindex(A1), j ∈ eachindex(A2)
+            a1, a2 = A1[i], A2[j]
+            sp, r = @gen(:sp, :r)(game, s, (a1, a2))
+            vp = solve_traverse!(solution, solver, game, sp)
+            V[i,j] = r + γ*vp
+        end
+        x,y,t = solve(solver, V)
+        solution[s] = SolutionNode((x,y), t)
+        return t
+    end
+end
+
 end
