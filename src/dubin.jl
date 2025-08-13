@@ -80,24 +80,27 @@ end
 
 function MarkovGames.transition(game::DubinMG, s::JointDubinState, (a1, a2))
     A = game.actions
-    return if s.attacker ∈ game.goal || norm(position(s.attacker) .- position(s.defender)) < 1.0
-        Deterministic(JointDubinState(s.attacker, s.defender, true))
+    next_attacker = force_inbounds(dubinstep(game, s.attacker, A[1][a1], game.V[1]), game.floor)
+    next_defender = force_inbounds(dubinstep(game, s.defender, A[2][a2], game.V[2]), game.floor)
+    _sp = JointDubinState(next_attacker, next_defender, false)
+    if isterminal(game, s)
+        return Deterministic(s)
+    elseif s.attacker ∈ game.goal || closest_distance(s, _sp) < 1.0
+        return Deterministic(JointDubinState(next_attacker, next_defender, true))
     else
-        next_attacker = force_inbounds(dubinstep(game, s.attacker, A[1][a1], game.V[1]), game.floor)
-        next_defender = force_inbounds(dubinstep(game, s.defender, A[2][a2], game.V[2]), game.floor)
-        Deterministic(JointDubinState(next_attacker, next_defender, false))
+        return Deterministic(JointDubinState(next_attacker, next_defender, false))
     end
 end
 
 MarkovGames.isterminal(::DubinMG, s) = s.terminal
 
-function MarkovGames.reward(p::DubinMG, s::JointDubinState, a)
+function MarkovGames.reward(p::DubinMG, s::JointDubinState, a, sp::JointDubinState)
     if isterminal(p, s)
         return 0.0
     else
         if s.attacker ∈ p.goal
             return 10.0
-        elseif norm(position(s.attacker) .- position(s.defender)) < 1.0
+        elseif closest_distance(s, sp) < 1.0
             return -10.0
         else
             return 0.0
@@ -114,6 +117,37 @@ function MarkovGames.convert_s(::Type{Vector{T}} , s::JointDubinState, p::DubinM
         defender_pos..., sincos(s.defender[3])...,
     ]
 end
+
+## segment intersect
+
+function closest_point(x11::AbstractVector, x12::AbstractVector, x21::AbstractVector, x22::AbstractVector)
+    Δx1 = x11 .- x21
+    Δx2 = x12 .- x22
+    α = dot(Δx1, Δx1)
+    β = dot(Δx1, Δx2)
+    γ = dot(Δx2, Δx2)
+    denom = (α - 2β + γ)
+    return iszero(denom) ? 0.0 : (α - β) / (α - 2β + γ)
+end
+
+distance(a,b) = norm(a .- b, 2)
+
+lerp(x1, x2, α) = (1-α) * x1 + α*x2
+
+function closest_distance(x11, x12, x21, x22)
+    t = clamp(closest_point(x11, x12, x21, x22), 0, 1)
+    return distance(lerp(x11,x12,t), lerp(x21,x22,t))
+end
+
+function closest_distance(s::JointDubinState, sp::JointDubinState)
+    attacker1, defender1 = s.attacker, s.defender
+    attacker2, defender2 = sp.attacker, sp.defender
+    return closest_distance(
+        attacker1[SOneTo(2)], attacker2[SOneTo(2)],
+        defender1[SOneTo(2)], defender2[SOneTo(2)]
+    )
+end
+
 
 ## visualization
 
@@ -142,6 +176,7 @@ end
     @series begin
         seriestype  := :scatter
         c           --> [:blue,:red]
+        labels  --> nothing
         [attacker[1], defender[1]], [attacker[2], defender[2]]
     end
 end
@@ -179,6 +214,7 @@ end
 @recipe function f(g::CircleGoal)
     seriestype := :shape
     c --> :yellow
+    labels  --> nothing
     circleshape(g.center[1], g.center[2], g.radius)
 end
 
