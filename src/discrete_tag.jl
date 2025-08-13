@@ -74,6 +74,8 @@ end
 
 MarkovGames.actions(p::TagMG) = (pursuer_actions(p), evader_actions(p))
 
+MarkovGames.player_actionindex(::TagMG, player, a) = a
+
 MarkovGames.discount(p::TagMG) = p.discount
 
 MarkovGames.initialstate(p::TagMG) = Deterministic(p.initialstate)
