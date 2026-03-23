@@ -126,7 +126,7 @@ function default_initial_state(
         1.0,
         0.0,
         0.99,
-        JointTronState(SA[1, 1], SA[2, 1], 1, 1, 0x00, 0x00, false, 0),
+        JointTronState(SA[1, 1], SA[2, 1], 1, 1, UInt128(0), UInt128(0), false, 0),
     )
     trail1 = cellbit(dummy, p1)
     trail2 = cellbit(dummy, p2)
@@ -157,7 +157,7 @@ function TronMG(;
         Float64(win_reward),
         Float64(draw_reward),
         Float64(discount),
-        JointTronState(SA[1, 1], SA[2, 1], 1, 1, 0x00, 0x00, false, 0),
+        JointTronState(SA[1, 1], SA[2, 1], 1, 1, UInt128(0), UInt128(0), false, 0),
     )
 
     inbounds(tmp, p1) || error("Player 1 start is out of bounds.")
