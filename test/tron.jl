@@ -1,6 +1,7 @@
 using POSGModels
 using MarkovGames
 using Random
+using StaticArrays
 using Test
 
 using POSGModels.Tron: JointTronState, TronMG
@@ -38,7 +39,7 @@ end
         @test sp.h1 == 2
         @test sp.h2 == 4
         @test !isterminal(game, sp)
-        @test reward(game, s0, (2, 2), sp) == 0.0
+        @test reward(game, s0, (2, 2), sp) == SA[0.0, 0.0]
         @test count(==(1.0), x[9:end]) == 4
     end
 
@@ -51,7 +52,7 @@ end
         @test sp.outcome == 0
         @test sp.p1 == [3, 2]
         @test sp.p2 == [3, 2]
-        @test reward(game, s0, (2, 2), sp) == 0.0
+        @test reward(game, s0, (2, 2), sp) == SA[0.0, 0.0]
     end
 
     @testset "wall collision gives surviving player the win" begin
@@ -63,7 +64,7 @@ end
         @test sp.outcome == -1
         @test sp.p1 == [3, 2]
         @test sp.p2 == [1, 3]
-        @test reward(game, s0, (2, 2), sp) == -2.5
+        @test reward(game, s0, (2, 2), sp) == SA[-2.5, 2.5]
     end
 
     @testset "state encoding shape and headings are stable" begin
