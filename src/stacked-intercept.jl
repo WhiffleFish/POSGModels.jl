@@ -113,7 +113,7 @@ MarkovGames.isterminal(::StackedInterceptMG, s) = s.terminal
 
 function MarkovGames.reward(p::StackedInterceptMG, s::StackedInterceptState, a)
     if isterminal(p, s)
-        return 0.0
+        return SA[0.0, 0.0]
     else
         r = mapreduce(+, s.attackers) do s_i
             -p.reward_model(s_i, s.defender)
@@ -121,7 +121,7 @@ function MarkovGames.reward(p::StackedInterceptMG, s::StackedInterceptState, a)
         for s_i ∈ s.attackers
             s_i ∈ p.goal && (r += 10.0)
         end
-        return r
+        return SA[Float64(r), -Float64(r)]
     end
 end
 

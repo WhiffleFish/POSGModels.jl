@@ -3,6 +3,7 @@ module SimpleGame
 using MarkovGames
 using Random
 using POMDPTools
+using StaticArrays
 
 export SimpleMG
 
@@ -46,7 +47,10 @@ end
 
 MarkovGames.initialstate(::SimpleMG) = Deterministic(Tuple{Int,Int}[])
 
-MarkovGames.reward(p::SimpleMG, s, a::Tuple) = isterminal(p, s) ? 0.0 : p.rewards[s][a...]
+function MarkovGames.reward(p::SimpleMG, s, a::Tuple)
+    r = isterminal(p, s) ? 0.0 : p.rewards[s][a...]
+    return SA[Float64(r), -Float64(r)]
+end
 
 MarkovGames.actions(p::SimpleMG) = axes(first(values(p.rewards)))
 
@@ -104,6 +108,9 @@ end
 
 struct SolutionNode
     policy::NTuple{2, Vector{Float64}}
+    r::Matrix{Float64}
+    vp::Matrix{Float64}
+    Q::Matrix{Float64}
     value::Float64
 end
 
@@ -120,17 +127,111 @@ function solve_traverse!(solution::Dict, solver, game, s::Vector)
         return 0.0
     else
         A1, A2 = actions(game)
-        V = zeros(length(A1), length(A2))
+        R = zeros(length(A1), length(A2))
+        Q = zeros(length(A1), length(A2))
+        VP =zeros(length(A1), length(A2))
         for i ∈ eachindex(A1), j ∈ eachindex(A2)
             a1, a2 = A1[i], A2[j]
             sp, r = @gen(:sp, :r)(game, s, (a1, a2))
             vp = solve_traverse!(solution, solver, game, sp)
-            V[i,j] = r + γ*vp
+            r1 = r[1]
+            R[i,j] = r1
+            VP[i,j] = vp
+            Q[i,j] = r1 + γ*vp
         end
-        x,y,t = solve(solver, V)
-        solution[s] = SolutionNode((x,y), t)
+        x,y,t = solve(solver, Q)
+        solution[s] = SolutionNode((x,y), R, VP, Q, t)
         return t
     end
 end
+
+## Exact Exploitability
+
+struct ExploitNode
+    policy::NTuple{2, Vector{Float64}}
+    exploit_policy::NTuple{2, Int}
+    r::Matrix{Float64}
+    vp::NTuple{2,Matrix{Float64}}
+    Q::NTuple{2,Matrix{Float64}}
+    exploit_value::NTuple{2,Float64}
+    attained_value::NTuple{2,Float64}
+end
+
+function exact_exploitability(planner, game::SimpleMG)
+    solution = Dict{SimpleState, ExploitNode}()
+    s = rand(initialstate(game))
+    solve_traverse!(solution, planner, game, s)
+    return solution
+end
+
+function exploit_traverse!(solution::Dict, planner, game, s::Vector)
+    γ = discount(game)
+    if isterminal(game, s)
+        return 0.0, 0.0
+    else
+        A1, A2 = actions(game)
+        R = zeros(length(A1), length(A2))
+        Q1 = zeros(length(A1), length(A2))
+        Q2 = zeros(length(A1), length(A2))
+        VP1 =zeros(length(A1), length(A2))
+        VP2 =zeros(length(A1), length(A2))
+        for i ∈ eachindex(A1), j ∈ eachindex(A2)
+            a1, a2 = A1[i], A2[j]
+            sp, r = @gen(:sp, :r)(game, s, (a1, a2))
+            vp1, vp2 = exploit_traverse!(solution, planner, game, sp)
+            r1, r2 = r
+            R[i,j] = r1
+            VP1[i,j] = vp1
+            VP2[i,j] = vp2
+            Q1[i,j] = r1 + γ*vp1
+            Q2[i,j] = r2 + γ*vp2
+        end
+        b = behavior(planner, s) # assuming sparsecat
+        @assert b[1] isa SparseCat
+        @assert b[2] isa SparseCat
+        x,y = b[1].probs, b[2].probs
+        
+        Qx = Q1 * y
+        v1 = maximum(Qx)
+        Qy = Q2' * x
+        v2 = maximum(Qy)
+
+        solution[s] = ExploitNode((x,y), R, VP, Q, t)
+        return v1, v2
+    end
+end
+
+function exact_brv(planner, game::SimpleMG, player=1)
+    s = rand(initialstate(game))
+    return brv_traverse!(planner, game, s, player)
+end
+
+# what is the maximum utility `player` can get?
+function brv_traverse!(planner, game, s::Vector, player)
+    γ = discount(game)
+    if isterminal(game, s)
+        return 0.0
+    else
+        A1, A2 = actions(game)
+        Q = zeros(length(A1), length(A2))
+        for i ∈ eachindex(A1), j ∈ eachindex(A2)
+            a1, a2 = A1[i], A2[j]
+            sp, r = @gen(:sp, :r)(game, s, (a1, a2))
+            vp = brv_traverse!(planner, game, sp, player)
+            Q[i,j] = r[player] + γ*vp
+        end
+        b = behavior(planner, s) # assuming sparsecat
+        @assert b[1] isa SparseCat
+        @assert b[2] isa SparseCat
+        x,y = b[1].probs, b[2].probs
+        return if isone(player)
+            maximum(Q * y)
+        else
+            maximum(Q' * x)
+        end
+    end
+end
+
+
 
 end

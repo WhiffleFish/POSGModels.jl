@@ -95,17 +95,16 @@ end
 MarkovGames.isterminal(::DubinMG, s) = s.terminal
 
 function MarkovGames.reward(p::DubinMG, s::JointDubinState, a, sp::JointDubinState)
-    if isterminal(p, s)
-        return 0.0
+    r = if isterminal(p, s)
+        0.0
+    elseif s.attacker ∈ p.goal
+        10.0
+    elseif closest_distance(s, sp) < 1.0
+        -10.0
     else
-        if s.attacker ∈ p.goal
-            return 10.0
-        elseif closest_distance(s, sp) < 1.0
-            return -10.0
-        else
-            return 0.0
-        end
+        0.0
     end
+    return SA[Float64(r), -Float64(r)]
 end
 
 function MarkovGames.convert_s(::Type{Vector{T}} , s::JointDubinState, p::DubinMG) where T

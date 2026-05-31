@@ -112,13 +112,13 @@ MarkovGames.isterminal(::InterceptMG, s) = s.terminal
 
 function MarkovGames.reward(p::InterceptMG, s::InterceptState, a)
     if isterminal(p, s)
-        return 0.0
+        return SA[0.0, 0.0]
     else
         r = -p.reward_model(s.attacker, s.defender)
         if s.attacker ∈ p.goal
             r += 10.0
         end
-        return r
+        return SA[Float64(r), -Float64(r)]
     end
 end
 

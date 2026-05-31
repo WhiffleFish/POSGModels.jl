@@ -34,7 +34,7 @@ end
 
 MarkovGames.discount(pomg::ContinuousTag) = pomg.discount
 MarkovGames.actions(pomg::ContinuousTag) = (1:pomg.n_act, 1:pomg.n_act)
-MarkovGames.observations(pomg::ContinuousTag) = (0:pomg.n_obs-1, 0:pomg.n_obs-1)
+MarkovGames.observations(pomg::ContinuousTag) = map(obs -> 0:obs.n-1, pomg.observations)
 
 function MarkovGames.initialstate(pomg::ContinuousTag{T}) where T
     dims = T.(pomg.initialstate_dims)
@@ -60,7 +60,7 @@ function MarkovGames.gen(pomg::ContinuousTag, s::CTagState{T}, a::Tuple{Int, Int
     subdiv = 2π / pomg.n_act
     θs = a .* subdiv
     θs = map(θs) do θ
-        rand(rng, Normal(θ, pomg.transition_noise))
+        θ + pomg.transition_noise * randn(rng)
     end
     sp = CTagState{T}(
         ctag_move(s.pursuer, θs[1], pomg.step_sizes[1]),
@@ -81,7 +81,7 @@ end
 
 function MarkovGames.reward(pomg::ContinuousTag, s::CTagState, a)
     r = pomg.dense_reward ? dense_pursuer_reward(pomg, s, a) : sparse_pursuer_reward(pomg, s, a)
-    return (r, -r)
+    return SA[Float64(r), -Float64(r)]
 end
 
 ## visualization -- old

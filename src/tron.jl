@@ -261,15 +261,16 @@ function MarkovGames.transition(game::TronMG, s::JointTronState, a::Tuple{Int, I
 end
 
 function MarkovGames.reward(game::TronMG, s::JointTronState, a, sp::JointTronState)
-    if isterminal(game, s)
-        return 0.0
+    r = if isterminal(game, s)
+        0.0
     elseif sp.outcome == 1
-        return game.win_reward
+        game.win_reward
     elseif sp.outcome == -1
-        return -game.win_reward
+        -game.win_reward
     else
-        return game.draw_reward
+        game.draw_reward
     end
+    return SA[Float64(r), -Float64(r)]
 end
 
 """

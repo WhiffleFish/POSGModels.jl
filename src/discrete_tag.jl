@@ -111,7 +111,10 @@ end
 
 MarkovGames.isterminal(::TagMG, s) = s.terminal
 
-MarkovGames.reward(p::TagMG, s::TagState, a) = isterminal(p, s) ? 0.0 : p.reward_model(s.pursuer, s.evader)
+function MarkovGames.reward(p::TagMG, s::TagState, a)
+    r = isterminal(p, s) ? 0.0 : p.reward_model(s.pursuer, s.evader)
+    return SA[Float64(r), -Float64(r)]
+end
 
 function stateindex(f::Coord, s::TagState)
     (;pursuer, evader, terminal) = s

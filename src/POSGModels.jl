@@ -1,6 +1,7 @@
 module POSGModels
 
 using MarkovGames
+using LinearAlgebra
 using POMDPTools
 using RecipesBase
 using StaticArrays
