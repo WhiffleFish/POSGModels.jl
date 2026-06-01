@@ -32,7 +32,7 @@ Base.in(x::Vec3, g::CircleGoal) = position(x) in g
 Base.@kwdef struct DubinMG{G} <: MG{JointDubinState, Tuple{Int,Int}}
     actions         ::  NTuple{2, Vector{Float64}}  = (deg2rad.([-45, 0, 45]), deg2rad.([-45, 0, 45]))
     V               ::  NTuple{2, Float64}          = (1.5, 1.0)
-    tag_reward      ::  Float64                     = 10.0
+    tag_reward      ::  Float64                     = 1.0
     discount        ::  Float64                     = 0.95
     floor           ::  Vec2                        = SA[10.0, 10.0]
     initialstate    ::  JointDubinState             = JointDubinState(Vec3(1,5,0), Vec3(7,5,π))
@@ -95,12 +95,10 @@ end
 MarkovGames.isterminal(::DubinMG, s) = s.terminal
 
 function MarkovGames.reward(p::DubinMG, s::JointDubinState, a, sp::JointDubinState)
-    r = if isterminal(p, s)
-        0.0
-    elseif s.attacker ∈ p.goal
-        10.0
+    r = if s.attacker ∈ p.goal
+        1.0
     elseif closest_distance(s, sp) < 1.0
-        -10.0
+        -1.0
     else
         0.0
     end
