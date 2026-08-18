@@ -13,7 +13,7 @@ using Random
 # a state, a `CircleGoal`, or a trajectory moves between the two games untouched -- and the
 # `CircleGoal` plot recipe, being registered on the type, comes along for free.
 using ..Dubin: DubinState, JointDubinState, CircleGoal, Vec2, Vec3,
-               position, dubinstep, force_inbounds, closest_distance, lerp
+               position, dubinstep, force_inbounds, closest_distance, lerp, dubin_flat_initial
 
 export DubinState, JointDubinState, ContinuousDubinMG, BoxActionSpace, control
 
@@ -63,14 +63,14 @@ turn rate. An action is a point of the unit box `(0,1)^2`, mapped affinely onto
 geometry and reward semantics (sparse ±1 on attacker-reaches-goal / capture) are those of
 `Dubin.DubinMG`; only the action space differs.
 """
-Base.@kwdef struct ContinuousDubinMG{G} <: MG{JointDubinState, Tuple{DubinAction, DubinAction}}
+Base.@kwdef struct ContinuousDubinMG{G,D} <: MG{JointDubinState, Tuple{DubinAction, DubinAction}}
     V               ::  NTuple{2, Vec2}            = (SA[0.75, 1.5], SA[0.5, 1.0])   # (min, max) speed
     ω_max           ::  NTuple{2, Float64}         = (deg2rad(45), deg2rad(45))
     tag_reward      ::  Float64                    = 1.0
     tag_radius      ::  Float64                    = 1.0
     discount        ::  Float64                    = 0.95
     floor           ::  Vec2                       = SA[10.0, 10.0]
-    initialstate    ::  JointDubinState            = JointDubinState(Vec3(1,5,0), Vec3(7,5,π))
+    initialstate    ::  D                          = dubin_flat_initial(10.0, 10.0)
     goal            ::  G                          = CircleGoal(SA[5.0,5.0], 1.0)
     dt              ::  Float64                    = 1.0
 end
@@ -79,7 +79,7 @@ MarkovGames.actions(::ContinuousDubinMG) = (unitbox(Val(2)), unitbox(Val(2)))
 
 MarkovGames.discount(p::ContinuousDubinMG) = p.discount
 
-MarkovGames.initialstate(p::ContinuousDubinMG) = Deterministic(p.initialstate)
+MarkovGames.initialstate(p::ContinuousDubinMG) = p.initialstate
 
 MarkovGames.isterminal(::ContinuousDubinMG, s) = s.terminal
 

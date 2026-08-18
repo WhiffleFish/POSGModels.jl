@@ -29,15 +29,23 @@ Base.in(x::Vec2, g::CircleGoal) = norm(x .- g.center, 2) < g.radius
 Base.in(x::Vec3, g::CircleGoal) = position(x) in g
 
 
-Base.@kwdef struct DubinMG{G} <: MG{JointDubinState, Tuple{Int,Int}}
+Base.@kwdef struct DubinMG{G,D} <: MG{JointDubinState, Tuple{Int,Int}}
     actions         ::  NTuple{2, Vector{Float64}}  = (deg2rad.([-45, 0, 45]), deg2rad.([-45, 0, 45]))
     V               ::  NTuple{2, Float64}          = (1.5, 1.0)
     tag_reward      ::  Float64                     = 1.0
     discount        ::  Float64                     = 0.95
     floor           ::  Vec2                        = SA[10.0, 10.0]
-    initialstate    ::  JointDubinState             = JointDubinState(Vec3(1,5,0), Vec3(7,5,π))
+    initialstate    ::  D                           = dubin_flat_initial(10.0, 10.0)
     goal            ::  G                           = CircleGoal(SA[5.0,5.0], 1.0)
     dt              ::  Float64                     = 1.0
+end
+
+function dubin_flat_initial(x,y)
+    return ImplicitDistribution() do rng
+        x1,y1,θ1 = rand(rng) * x, rand(rng) * y, rand(rng) * 2π
+        x2,y2,θ2 = rand(rng) * x, rand(rng) * y, rand(rng) * 2π
+        return JointDubinState(Vec3(x1, y1, θ1), Vec3(x2, y2, θ2))
+    end
 end
 
 function rk4step(f, x, h)
@@ -68,7 +76,7 @@ MarkovGames.actions(p::DubinMG) = eachindex.(p.actions)
 
 MarkovGames.discount(p::DubinMG) = p.discount
 
-MarkovGames.initialstate(p::DubinMG) = Deterministic(p.initialstate)
+MarkovGames.initialstate(p::DubinMG) = p.initialstate
 
 function force_inbounds(x::DubinState, floor)
     return SA[
